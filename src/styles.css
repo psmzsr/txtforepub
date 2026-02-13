@@ -1,4 +1,5 @@
 :root {
+  /* 全局主题变量：颜色、背景和状态色 */
   --bg: radial-gradient(circle at 15% 20%, #f2f6ff 0%, #fdf9f3 38%, #fff 100%);
   --card: rgba(255, 255, 255, 0.9);
   --border: #d7deeb;
@@ -12,10 +13,12 @@
 *,
 *::before,
 *::after {
+  /* 统一盒模型，避免不同组件宽高计算不一致 */
   box-sizing: border-box;
 }
 
 body {
+  /* 页面基础排版与背景 */
   margin: 0;
   font-family: "IBM Plex Sans", "Source Han Sans SC", "Microsoft YaHei", sans-serif;
   color: var(--text);
@@ -23,6 +26,7 @@ body {
 }
 
 .page {
+  /* 两张卡片的外层布局容器 */
   max-width: 1080px;
   margin: 0 auto;
   padding: 24px 16px 36px;
@@ -31,6 +35,7 @@ body {
 }
 
 .card {
+  /* 卡片风格：半透明 + 阴影 + 入场动画 */
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -41,6 +46,7 @@ body {
 
 h1,
 h2 {
+  /* 标题字重和字族统一 */
   margin: 0 0 8px 0;
   font-family: "Space Grotesk", "Source Han Sans SC", sans-serif;
   letter-spacing: 0.01em;
@@ -55,11 +61,13 @@ h2 {
 }
 
 .sub {
+  /* 次要说明文本 */
   margin: 0 0 14px 0;
   color: var(--muted);
 }
 
 label {
+  /* 表单项采用垂直布局：标题在上，输入框在下 */
   display: grid;
   gap: 8px;
   margin-bottom: 14px;
@@ -69,6 +77,7 @@ label {
 input,
 textarea,
 select {
+  /* 输入控件统一样式 */
   width: 100%;
   border: 1px solid #bdc8db;
   border-radius: 10px;
@@ -84,21 +93,25 @@ select {
 input:focus,
 textarea:focus,
 select:focus {
+  /* 聚焦高亮，提升可用性 */
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(11, 91, 211, 0.17);
 }
 
 textarea {
+  /* 文本域允许纵向拉伸 */
   resize: vertical;
   line-height: 1.58;
 }
 
 .grid {
+  /* 基础网格容器 */
   display: grid;
   gap: 14px;
 }
 
 .two-cols {
+  /* 移动端默认单列，桌面端在媒体查询里变双列 */
   grid-template-columns: 1fr;
 }
 
@@ -107,6 +120,7 @@ textarea {
 }
 
 .file-name {
+  /* 文件名提示区与输入区对齐 */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -116,6 +130,7 @@ textarea {
 }
 
 .convert-btn {
+  /* 主操作按钮 */
   width: 100%;
   border: 0;
   border-radius: 12px;
@@ -129,6 +144,7 @@ textarea {
 }
 
 .convert-btn:hover:not(:disabled) {
+  /* 悬停时轻微上浮 */
   filter: brightness(1.03);
   transform: translateY(-1px);
 }
@@ -138,6 +154,7 @@ textarea {
 }
 
 .convert-btn:disabled {
+  /* 禁用态弱化 */
   background: #94a3b8;
   cursor: not-allowed;
 }
@@ -155,6 +172,7 @@ textarea {
 }
 
 .preview-list {
+  /* 章节预览列表 */
   margin: 0;
   padding: 0;
   list-style: none;
@@ -163,6 +181,7 @@ textarea {
 }
 
 .preview-list li {
+  /* 单个章节预览项 */
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
@@ -173,11 +192,13 @@ textarea {
 
 @media (min-width: 860px) {
   .two-cols {
+    /* 桌面端恢复双列 */
     grid-template-columns: 1fr 1fr;
   }
 }
 
 @keyframes rise-in {
+  /* 卡片入场动画 */
   from {
     opacity: 0;
     transform: translateY(5px);

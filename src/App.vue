@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import { createEpubFromTxt } from "./lib/epub";
 
+// 表单基础配置：电子书元数据 + 分章策略
 const form = ref({
   title: "我的 TXT 电子书",
   author: "匿名作者",
@@ -9,47 +10,66 @@ const form = ref({
   splitMode: "auto",
   maxChapterChars: 6000
 });
+// 文本原始内容（来自文件上传或手动粘贴）
 const txtContent = ref("");
+// 已选择的源文件名（仅用于界面展示）
 const sourceFileName = ref("");
+// 转换后的章节预览（只显示前 10 章）
 const chapterPreview = ref([]);
+// 转换中的加载态，防止重复点击
 const isConverting = ref(false);
+// 过程提示信息（成功/失败/进行中）
 const message = ref("准备就绪：先上传 TXT 或直接粘贴内容。");
+// 错误信息（单独高亮展示）
 const errorMessage = ref("");
 
+// 转换按钮是否可用：有内容且当前不在转换中
 const canConvert = computed(() => txtContent.value.trim().length > 0 && !isConverting.value);
 
+// 处理文件选择：读取 TXT 到文本框
 async function onSelectFile(event) {
+  // 只取首个文件
   const [file] = event.target.files || [];
   if (!file) {
     return;
   }
 
+  // 记录文件名，并读取文本内容
   sourceFileName.value = file.name;
   txtContent.value = await file.text();
+  // 更新状态提示并清空旧错误
   message.value = `已加载文件：${file.name}`;
   errorMessage.value = "";
 }
 
+// 处理“生成 EPUB”按钮点击
 async function onConvert() {
+  // 防御式判断，避免非法触发
   if (!canConvert.value) {
     return;
   }
 
+  // 进入加载态，重置错误并给出进度提示
   isConverting.value = true;
   errorMessage.value = "";
   message.value = "正在生成 EPUB...";
 
   try {
+    // 把表单参数和正文一起交给 EPUB 生成器
     const result = await createEpubFromTxt({
       ...form.value,
       text: txtContent.value
     });
+    // 仅预览前 10 章，避免界面过长
     chapterPreview.value = result.chapters.slice(0, 10);
+    // 生成器内部已触发下载，这里只做结果反馈
     message.value = `转换成功，已下载 EPUB（共 ${result.chapters.length} 章）。`;
   } catch (error) {
+    // 统一错误展示：优先显示异常对象中的 message
     errorMessage.value = error instanceof Error ? error.message : "转换失败，请重试。";
     message.value = "转换失败";
   } finally {
+    // 无论成功失败都要退出加载态
     isConverting.value = false;
   }
 }
@@ -57,10 +77,12 @@ async function onConvert() {
 
 <template>
   <main class="page">
+    <!-- 左侧：输入与转换区 -->
     <section class="card">
       <h1>TXT 转 EPUB（Vue 初版）</h1>
       <p class="sub">本地浏览器转换，不上传服务器。</p>
 
+      <!-- 基础元数据 -->
       <div class="grid two-cols">
         <label>
           书名
@@ -72,6 +94,7 @@ async function onConvert() {
         </label>
       </div>
 
+      <!-- 分章参数 -->
       <div class="grid two-cols">
         <label>
           语言
@@ -102,6 +125,7 @@ async function onConvert() {
         />
       </label>
 
+      <!-- 文件输入 + 文件名展示 -->
       <div class="grid two-cols file-row">
         <label>
           上传 TXT 文件
@@ -113,6 +137,7 @@ async function onConvert() {
         </div>
       </div>
 
+      <!-- 文本编辑区 -->
       <label>
         TXT 内容（可手动编辑）
         <textarea
@@ -122,14 +147,17 @@ async function onConvert() {
         />
       </label>
 
+      <!-- 触发转换 -->
       <button :disabled="!canConvert" class="convert-btn" @click="onConvert">
         {{ isConverting ? "转换中..." : "生成 EPUB 并下载" }}
       </button>
 
+      <!-- 状态反馈 -->
       <p class="status">{{ message }}</p>
       <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
     </section>
 
+    <!-- 右侧：分章结果预览 -->
     <section class="card">
       <h2>章节预览（最多显示 10 章）</h2>
       <ul v-if="chapterPreview.length > 0" class="preview-list">
