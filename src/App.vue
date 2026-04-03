@@ -20,6 +20,7 @@ const coverImage = ref(null);
 const inlineImages = ref([]);
 const nextInlineImageId = ref(1);
 const textAreaRef = ref(null);
+const expandedInlineImageId = ref(null);
 
 const canConvert = computed(() => txtContent.value.trim().length > 0 && !isConverting.value);
 const chapterStructure = computed(() =>
@@ -132,6 +133,18 @@ function makeImageRecord(file, id, source = "upload") {
   };
 }
 
+function setExpandedInlineImage(imageId) {
+  expandedInlineImageId.value = imageId;
+}
+
+function isInlineImageExpanded(imageId) {
+  return expandedInlineImageId.value === imageId;
+}
+
+function toggleInlineImageExpanded(imageId) {
+  expandedInlineImageId.value = expandedInlineImageId.value === imageId ? null : imageId;
+}
+
 function revokePreview(item) {
   if (item?.previewUrl) {
     URL.revokeObjectURL(item.previewUrl);
@@ -205,6 +218,9 @@ function appendInlineImages(files, source = "upload") {
   });
 
   inlineImages.value = [...inlineImages.value, ...appendedImages];
+  if (appendedImages.length > 0) {
+    setExpandedInlineImage(appendedImages[appendedImages.length - 1].id);
+  }
 
   return {
     appendedImages,
@@ -473,6 +489,9 @@ function clearInlineImage(imageId) {
   revokePreview(target);
   inlineImages.value = inlineImages.value.filter((item) => item.id !== imageId);
   removeInlineTokenFromText(target.token);
+  if (expandedInlineImageId.value === imageId) {
+    expandedInlineImageId.value = inlineImages.value[0]?.id || null;
+  }
   message.value = `已移除插图：${target.name}`;
 }
 
@@ -632,74 +651,82 @@ onBeforeUnmount(() => {
               <li v-for="image in inlineImages" :key="image.id">
                 <img class="asset-thumb" :src="image.previewUrl" :alt="image.alt" />
                 <div class="asset-body">
-                  <strong>{{ image.name }}</strong>
-
-                  <div class="placement-preview-header">
-                    <span class="preview-chip">{{ image.source === "paste" ? "正文粘贴" : "手动上传" }}</span>
-                    <span v-if="isTokenInText(image.token) && !hasPlacement(image)" class="preview-chip soft">
-                      光标位置锚点
-                    </span>
-                    <span v-else-if="hasPlacement(image)" class="preview-chip soft">面板定位</span>
-                    <span v-else class="preview-chip soft">未定位</span>
-                  </div>
-
-                  <label class="mini-label">
-                    图片说明
-                    <input v-model.trim="image.alt" type="text" placeholder="用于 EPUB 中的图片说明" />
-                  </label>
-
-                  <div class="placement-grid">
-                    <label class="mini-label">
-                      所在章节
-                      <select
-                        :value="hasPlacement(image) ? image.placement.chapterIndex : ''"
-                        @change="onInlineImageChapterChange(image, $event.target.value)"
-                      >
-                        <option value="">未放置</option>
-                        <option v-for="chapter in chapterOptions" :key="chapter.value" :value="chapter.value">
-                          {{ chapter.label }}
-                        </option>
-                      </select>
-                    </label>
-
-                    <label class="mini-label">
-                      插图位置
-                      <select
-                        :disabled="!hasPlacement(image)"
-                        :value="hasPlacement(image) ? image.placement.position : 0"
-                        @change="onInlineImagePositionChange(image, $event.target.value)"
-                      >
-                        <option v-for="option in getPositionOptions(image)" :key="`${image.id}-${option.value}`" :value="option.value">
-                          {{ option.label }}
-                        </option>
-                      </select>
-                    </label>
-                  </div>
-
-                  <p class="placement-hint">{{ describePlacement(image) }}</p>
-
-                  <div v-if="getPlacementContext(image)" class="placement-preview">
-                    <div class="placement-preview-header">
-                      <span class="preview-chip">{{ getPlacementContext(image).chapterTitle }}</span>
-                      <span class="preview-chip soft">{{ getPlacementContext(image).positionLabel }}</span>
+                  <div class="asset-item-head">
+                    <div class="asset-item-meta">
+                      <strong>{{ image.name }}</strong>
+                      <div class="placement-preview-header">
+                        <span class="preview-chip">{{ image.source === "paste" ? "正文粘贴" : "手动上传" }}</span>
+                        <span v-if="isTokenInText(image.token) && !hasPlacement(image)" class="preview-chip soft">
+                          光标位置锚点
+                        </span>
+                        <span v-else-if="hasPlacement(image)" class="preview-chip soft">面板定位</span>
+                        <span v-else class="preview-chip soft">未定位</span>
+                      </div>
+                      <p class="placement-hint compact">{{ describePlacement(image) }}</p>
                     </div>
 
-                    <div class="placement-preview-flow">
-                      <div class="placement-preview-block">
-                        <span>前文</span>
-                        <p>{{ getPlacementContext(image).previousText }}</p>
-                      </div>
-                      <div class="placement-preview-image">插图</div>
-                      <div class="placement-preview-block">
-                        <span>后文</span>
-                        <p>{{ getPlacementContext(image).nextText }}</p>
-                      </div>
-                    </div>
+                    <button class="ghost-btn inline-toggle-btn" type="button" @click="toggleInlineImageExpanded(image.id)">
+                      {{ isInlineImageExpanded(image.id) ? "收起" : "展开" }}
+                    </button>
                   </div>
 
-                  <div class="asset-actions">
-                    <button class="ghost-btn" type="button" @click="clearInlinePlacement(image)">清空位置</button>
-                    <button class="ghost-btn danger" type="button" @click="clearInlineImage(image.id)">删除插图</button>
+                  <div v-if="isInlineImageExpanded(image.id)" class="asset-item-details">
+                    <label class="mini-label">
+                      图片说明
+                      <input v-model.trim="image.alt" type="text" placeholder="用于 EPUB 中的图片说明" />
+                    </label>
+
+                    <div class="placement-grid">
+                      <label class="mini-label">
+                        所在章节
+                        <select
+                          :value="hasPlacement(image) ? image.placement.chapterIndex : ''"
+                          @change="onInlineImageChapterChange(image, $event.target.value)"
+                        >
+                          <option value="">未放置</option>
+                          <option v-for="chapter in chapterOptions" :key="chapter.value" :value="chapter.value">
+                            {{ chapter.label }}
+                          </option>
+                        </select>
+                      </label>
+
+                      <label class="mini-label">
+                        插图位置
+                        <select
+                          :disabled="!hasPlacement(image)"
+                          :value="hasPlacement(image) ? image.placement.position : 0"
+                          @change="onInlineImagePositionChange(image, $event.target.value)"
+                        >
+                          <option v-for="option in getPositionOptions(image)" :key="`${image.id}-${option.value}`" :value="option.value">
+                            {{ option.label }}
+                          </option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <div v-if="getPlacementContext(image)" class="placement-preview">
+                      <div class="placement-preview-header">
+                        <span class="preview-chip">{{ getPlacementContext(image).chapterTitle }}</span>
+                        <span class="preview-chip soft">{{ getPlacementContext(image).positionLabel }}</span>
+                      </div>
+
+                      <div class="placement-preview-flow">
+                        <div class="placement-preview-block">
+                          <span>前文</span>
+                          <p>{{ getPlacementContext(image).previousText }}</p>
+                        </div>
+                        <div class="placement-preview-image">插图</div>
+                        <div class="placement-preview-block">
+                          <span>后文</span>
+                          <p>{{ getPlacementContext(image).nextText }}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="asset-actions">
+                      <button class="ghost-btn" type="button" @click="clearInlinePlacement(image)">清空位置</button>
+                      <button class="ghost-btn danger" type="button" @click="clearInlineImage(image.id)">删除插图</button>
+                    </div>
                   </div>
                 </div>
               </li>
